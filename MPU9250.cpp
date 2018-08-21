@@ -144,103 +144,110 @@ void MPU9250::changeMPUAddress()
 
 
 void MPU9250::setLowPassMode(uint8_t accMode, uint8_t gyroMode)
-{
+{	//accMode:depending on the number set in the header set the lowpass for the acc
+	//gyroMode: depending on the number set in the header set the lowpass for the gyro
+	//TODO: use enum, and set up methods to interact with the mode from the main
+
+	//hereafter the register entries to set the lowpass for the acc are done
 	switch (accMode){
 	case 0://no lowpass
-		writeRegister(_activeMPUAddress, 29, 0x08);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x08);
 		break;
 	case 1://bandwidth 480Hz
-		writeRegister(_activeMPUAddress, 29, 0x00);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x00);
 		break;
 	case 2://bandwdith 184Hz
-		writeRegister(_activeMPUAddress, 29, 0x01);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x01);
 		break;
 	case 3://bandwdith 92Hz
-		writeRegister(_activeMPUAddress, 29, 0x02);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x02);
 		break;
 	case 4://bandwidth 41Hz
-		writeRegister(_activeMPUAddress, 29, 0x03);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x03);
 		break;
 	case 5: //bandwidth 20Hz
-		writeRegister(_activeMPUAddress, 29, 0x04);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x04);
 		break;
 	case 6: //bandwidth 10Hz
-		writeRegister(_activeMPUAddress, 29, 0x05);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x05);
 		break;
 	case 7: //bandwidth 5Hz
-		writeRegister(_activeMPUAddress, 29, 0x06);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x06);
 		break;
 	case 8:
-		writeRegister(_activeMPUAddress, 29, 0x07);
+		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x07);
 		break;
 	default:
 		Serial.print("Invalid AccMode");
 	}
 	uint8_t temp;
+	//hereafter the register entries to set the lowpass for the gyro are done.
+	//To not change the values that are  already present in the register we store the
+	//byte and conduct the approriate bitmath to get the desired result
 	switch (gyroMode) {
-	case 0://no lowPass bandwidth 8800Hz(B11 or B01 for fchoiceb and whatever for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, 0x03 | temp);
+	case 0://no lowPass bandwidth 8800Hz(11 or 01 for fchoiceb and whatever for dlpf_cfg
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, 0x03 | temp);
 		break;
-	case 1://bandwidth 3600Hz (B10 for fchoiceb and whatever for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
+	case 1://bandwidth 3600Hz (10 for fchoiceb and whatever for dlpf_cfg
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
 		temp = B11111100 & temp;
-		writeRegister(_activeMPUAddress, 27, 0x02 | temp);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, 0x02 | temp);
 		break;
 	case 2://bandwidth 250Hz (00 for fchoiceb and 000 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
-		writeRegister(_activeMPUAddress, 26, B11111000 & temp);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
+		writeRegister(_activeMPUAddress, CONFIG, B11111000 & temp);
 		break;
 	case 3://bandwidth 184Hz (00 for fchoiceb 001 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000001 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000001 | temp);
 		break;
 	case 4://bandwidth 92Hz(00 for fchoiceb 010 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000010 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000010 | temp);
 		break;
 	case 5://bandwidth 41Hz (00 for fchoiceb and 011 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000011 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000011 | temp);
 		break;
 	case 6://bandwidth 20Hz (00 for fchoiceb and 100 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000100 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000100 | temp);
 		break;
 	case 7://bandwidth 10Hz (00 for fchoiceb and 101 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000101 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000101 | temp);
 		break;
 	case 8://bandwidth 5Hz (00 for fchoiceb and 110 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000110 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000110 | temp);
 		break;
 	case 9://bandwidth 3600Hz (00 for fchoiceb and 111 for dlpf_cfg
-		temp = readRegister(_activeMPUAddress, 27);
-		writeRegister(_activeMPUAddress, 27, B11111100 & temp);
-		temp = readRegister(_activeMPUAddress, 26);
+		temp = readRegister(_activeMPUAddress, GYRO_CONFIG);
+		writeRegister(_activeMPUAddress, GYRO_CONFIG, B11111100 & temp);
+		temp = readRegister(_activeMPUAddress, CONFIG);
 		temp = B11111000 & temp;
-		writeRegister(_activeMPUAddress, 26, B00000111 | temp);
+		writeRegister(_activeMPUAddress, CONFIG, B00000111 | temp);
 		break;
 	default:
 		Serial.print("Invalid GyroMode");
@@ -311,7 +318,7 @@ void MPU9250::setScaleAndResolution(uint8_t accScale, uint16_t gyroScale, uint8_
 
 uint8_t MPU9250::getAddress()
 {
-	uint8_t test = _activeMPUAddress;
+	uint8_t test = _activeMPUAddress;//forgot to change during refactor, now ill leave it for the laughs
 	return test;
 }
 

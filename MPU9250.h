@@ -19,24 +19,23 @@
 
 #define SELF_TEST_A      0x10
 
-#define XG_OFFSET_H      0x13  // User-defined trim values for gyroscope
+#define XG_OFFSET_H      0x13  
 #define XG_OFFSET_L      0x14
 #define YG_OFFSET_H      0x15
 #define YG_OFFSET_L      0x16
 #define ZG_OFFSET_H      0x17
 #define ZG_OFFSET_L      0x18
-#define SMPLRT_DIV       0x19
-#define CONFIG           0x1A
-#define GYRO_CONFIG      0x1B
-#define ACCEL_CONFIG     0x1C
-#define ACCEL_CONFIG2    0x1D
+#define SMPLRT_DIV       0x19//
+#define CONFIG           0x1A//
+#define GYRO_CONFIG      0x1B//
+#define ACCEL_CONFIG     0x1C//
+#define ACCEL_CONFIG2    0x1D//
 #define LP_ACCEL_ODR     0x1E   
 #define WOM_THR          0x1F   
 
-#define MOT_DUR          0x20  // Duration counter threshold for motion interrupt generation, 1 kHz rate, LSB = 1 ms
-#define ZMOT_THR         0x21  // Zero-motion detection threshold bits [7:0]
-#define ZRMOT_DUR        0x22  // Duration counter threshold for zero motion interrupt generation, 16 Hz rate, LSB = 64 ms
-
+#define MOT_DUR          0x20 
+#define ZMOT_THR         0x21  
+#define ZRMOT_DUR        0x22  
 #define FIFO_EN          0x23
 #define I2C_MST_CTRL     0x24   
 #define I2C_SLV0_ADDR    0x25
@@ -69,7 +68,7 @@
 #define ACCEL_ZOUT_L     0x40
 #define TEMP_OUT_H       0x41
 #define TEMP_OUT_L       0x42
-#define GYRO_XOUT_H      0x43  //GYRP
+#define GYRO_XOUT_H      0x43  //GYRO
 #define GYRO_XOUT_L      0x44
 #define GYRO_YOUT_H      0x45
 #define GYRO_YOUT_L      0x46
@@ -148,32 +147,32 @@ class MPU9250
 {
  
  public:
-	 uint8_t readRegister(uint8_t, uint8_t);//w
-	 void readRegisters( uint8_t, uint8_t, uint8_t, uint8_t*);//w
+	 uint8_t readRegister(uint8_t deviceAddress, uint8_t reg);
+	 void readRegisters( uint8_t deviceAddress, uint8_t firstRegister, uint8_t numRegisters, uint8_t* store);
 
-	 void writeRegister(uint8_t, uint8_t, uint8_t);//w
+	 void writeRegister(uint8_t deviceAddress, uint8_t reg, uint8_t whatToWrite);
 
-	 void readAcc( float*);
-	 void readRawAcc(int16_t*);
-	 void readGyro(float*);
-	 void readRawGyro(int16_t*);//w
-	 void readMag(float*);
-	 void readRawMag(int16_t*);
+	 void readAcc( float* storage);
+	 void readRawAcc(int16_t* storage);
+	 void readGyro(float* storage);
+	 void readRawGyro(int16_t* storage);
+	 void readMag(float* storage);
+	 void readRawMag(int16_t* storage);
 
-	 void readAccGyro(float*);
+	 void readAccGyro(float* storage);
 
 	 bool initMPU();
 
 	 void changeMPUAddress();
 
 
-	 void setLowPassMode(uint8_t, uint8_t);
+	 void setLowPassMode(uint8_t accMoode, uint8_t gyroMode);
 
-	 void setScaleAndResolution(uint8_t, uint16_t, uint8_t);
+	 void setScaleAndResolution(uint8_t accScale, uint16_t gyroScale, uint8_t magBit);
 
-	 uint8_t getAddress();
+	 uint8_t getAddress();//get the currently active address
 	
-	 void i2cScanner();
+	 void i2cScanner();//scans the i2c bus for devices
 
 	 void initMag();
 
@@ -181,41 +180,34 @@ class MPU9250
 
 	 void calibrateMag();
 
-	 float _magOffset[3];
+	 float _magOffset[3];//yeah you shouldnt be able to interact with this directly but cba
 	 float _magErrorScale[3];
 	 
  private:
-	 
-
 	 const uint8_t _ADDRESS_AD0 = 0x68;
 	 const uint8_t _ADDRESS_AD1 = 0x69;
 	 const uint8_t _ADDRESS_MAG = 0x0C;//AK8963 =MAG
 
 	 uint8_t _activeMPUAddress=_ADDRESS_AD0;
-	 uint8_t _accScale = 2;
-	 uint16_t _gyroScale = 250;
+
+	 //measurement ranges of the sensors eg 2 => measures from -2g to +2g
+	 uint8_t _accScale = 2;//+2g,+4g, +6g, +8g
+	 uint16_t _gyroScale = 250;//+250dps,+500dps,1000dps,2000dps  dps=degrees per seconds
 	 //uint16_t _magScale = 4800;
-	 uint8_t _magBit = 16;
+	 uint8_t _magBit = 16;//16bit or 14bit Mode, no real reason to not use 16bit
 
-	 float _accRes, _gyroRes, _magRes;
-	 const float _gyroOffset[3] = { -1.63333f,2.56453f,-0.014816f };
+	 float _accRes, _gyroRes, _magRes;//these values
+	 const float _gyroOffset[3] = { -1.63333f,2.56453f,-0.014816f };//read off serial monitor after a calibration, its easier than eeprom
 	 //const float _gyroOffset[3] = { 0.f,0.f,0.f };
-	 //const float _accOffset[3] = { -0.040248f,-0.013765f,0.029220f };
-	 const float _accOffset[3] = { 0.0f,0.0f,0.0f };
-	 //const float _accErrorScale[3] = { 0.997761f,0.996936f,0.983371f };//roughly from Matlab
-	 const float _accErrorScale[3] = { 1.0f,1.0f,1.0f };//roughly from Matlab
+	 const float _accOffset[3] = { 0.0f,0.0f,0.0f };//didnt calibrate acc, isnt really necessary unlike mag and gyro 
+	 const float _accErrorScale[3] = { 1.0f,1.0f,1.0f };
 
-	 const float _magOff[3] = { -1.64464f,25.1956f,-36.55816f };
+	 const float _magOff[3] = { -1.64464f,25.1956f,-36.55816f };//calibrated and read off the serial monitor 
 	 //const float _magOff[3] = { 0.0f,0.0f,0.0f };
 	 const float _magError[3] = { 1.07888f,0.97809f,0.95174f };
 	 //const float _magError[3] = { 0.0f,0.0f,0.0f };
 	 float _magSensAdjust[3];
 	
-
-
-
-
-
 	 uint8_t _lowPassModeAcc = 4;
 	/*
 	 No LowPass / Mode 0 Bandwidth = 1.13kHz timedelay = 0.75ms intSample = 4kHz
@@ -229,7 +221,7 @@ class MPU9250
 	 Mode 8 : bw = 460 td = 1.94 intSample = 1kHz %same as mode 1
 	 */
 
-	 uint8_t _lowPassModeGyro=5;//prob consider enum
+	 uint8_t _lowPassModeGyro=5;//also configures the lowpass for the temp sensor 
 	 /* 
 	 No LowPass / Mode 0:Bandwidth = 8800Hz  timedelay = 0.064ms intSample 32mkHz
 	 Mode 1 : bw = 3600 td = 0.11ms intSample 32kHz
@@ -242,12 +234,5 @@ class MPU9250
 	 Mode 8 : bw = 5 td = 33.48ms  intSample 1
 	 Mode 9 : bw = 3600 td = 0.17ms intSample 8 % dunno why this exist its worse than mode 3
 	  */
-
-	 
-
-
 };
-
-
 #endif
-
