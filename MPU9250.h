@@ -143,10 +143,13 @@
 #define MAG_ASAY      0x11  // Fuse ROM y-axis sensitivity adjustment value
 #define MAG_ASAZ	  0x12 // Fuse ROM z-axis sensitivity adjustment value
 
+#include <i2c_t3.h>
+
 class MPU9250
-{
- 
+{ 
  public:
+	 MPU9250(i2c_t3 & Wire) :_Wire(Wire) {};
+
 	 uint8_t readRegister(uint8_t deviceAddress, uint8_t reg);
 	 void readRegisters( uint8_t deviceAddress, uint8_t firstRegister, uint8_t numRegisters, uint8_t* store);
 
@@ -163,16 +166,12 @@ class MPU9250
 
 	 bool initMPU();
 
-	 void changeMPUAddress();
-
-
+	 void changeMPUAddress();//still  necessary to put HIGH on AD0 on the MPU
+	 uint8_t getAddress();//get the currently active address
+	 
 	 void setLowPassMode(uint8_t accMoode, uint8_t gyroMode);
 
 	 void setScaleAndResolution(uint8_t accScale, uint16_t gyroScale, uint8_t magBit);
-
-	 uint8_t getAddress();//get the currently active address
-	
-	 void i2cScanner();//scans the i2c bus for devices
 
 	 void initMag();
 
@@ -180,32 +179,45 @@ class MPU9250
 
 	 void calibrateMag();
 
-	 float _magOffset[3];//yeah you shouldnt be able to interact with this directly but cba
-	 float _magErrorScale[3];
-	 
- private:
-	 const uint8_t _ADDRESS_AD0 = 0x68;
-	 const uint8_t _ADDRESS_AD1 = 0x69;
-	 const uint8_t _ADDRESS_MAG = 0x0C;//AK8963 =MAG
+	 void printMagCalibration();
 
-	 uint8_t _activeMPUAddress=_ADDRESS_AD0;
+	 void setMagCalibration(float* errorScale, float* offset);
+
+	 void printGyroOffset();
+	 void setGyroOffset(float* gyroOffset);	 
+	 
+	 uint32_t getGyroSampleDelayInMicro();
+	 uint32_t getAccSampleDelayInMicro();
+ private:
+	 uint8_t _activeMPUAddress = _ADDRESS_AD0;
 
 	 //measurement ranges of the sensors eg 2 => measures from -2g to +2g
 	 uint8_t _accScale = 2;//+2g,+4g, +6g, +8g
 	 uint16_t _gyroScale = 250;//+250dps,+500dps,1000dps,2000dps  dps=degrees per seconds
-	 //uint16_t _magScale = 4800;
-	 uint8_t _magBit = 16;//16bit or 14bit Mode, no real reason to not use 16bit
+	 uint8_t _magBit = 16;//16bit or 14bit Mode, range of magnometer is +-4800uT
 
-	 float _accRes, _gyroRes, _magRes;//these values
-	 const float _gyroOffset[3] = { -1.63333f,2.56453f,-0.014816f };//read off serial monitor after a calibration, its easier than eeprom
-	 //const float _gyroOffset[3] = { 0.f,0.f,0.f };
+	 i2c_t3 & _Wire;
+
+	 const uint8_t _ADDRESS_AD0 = 0x68;
+	 const uint8_t _ADDRESS_AD1 = 0x69;
+	 const uint8_t _ADDRESS_MAG = 0x0C;//AK8963 =MAG
+
+	 float _accRes, _gyroRes, _magRes;
+
+	 uint32_t _gyroSampleDelayInMicro;
+	 uint32_t _accSampleDelayInMicro;
+
+	 float _magOffset[3];
+	 float _magErrorScale[3];
+	 float _gyroOffset[3];
+	 //const float _gyroOffset[3] = { -1.63333f,2.56453f,-0.014816f };//read off serial monitor after a calibration, its easier than eeprom
+
 	 const float _accOffset[3] = { 0.0f,0.0f,0.0f };//didnt calibrate acc, isnt really necessary unlike mag and gyro 
 	 const float _accErrorScale[3] = { 1.0f,1.0f,1.0f };
 
-	 const float _magOff[3] = { -1.64464f,25.1956f,-36.55816f };//calibrated and read off the serial monitor 
-	 //const float _magOff[3] = { 0.0f,0.0f,0.0f };
-	 const float _magError[3] = { 1.07888f,0.97809f,0.95174f };
-	 //const float _magError[3] = { 0.0f,0.0f,0.0f };
+	 //const float _magOff[3] = { -1.64464f,25.1956f,-36.55816f };//calibrated and read off the serial monitor 
+	 //const float _magError[3] = { 1.07888f,0.97809f,0.95174f };
+	 
 	 float _magSensAdjust[3];
 	
 	 uint8_t _lowPassModeAcc = 4;

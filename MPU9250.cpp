@@ -1,41 +1,33 @@
-// 
-// 
-// 
-
 #include "MPU9250.h"
-#include <Wire.h>
 
 uint8_t MPU9250::readRegister(uint8_t deviceAddress, uint8_t reg) {
-	Wire.beginTransmission(deviceAddress);
-	Wire.write(reg);
-	Wire.endTransmission(false);
+	_Wire.beginTransmission(deviceAddress);
+	_Wire.write(reg);
+	_Wire.endTransmission(false);
 
 	uint8_t data;
-	Wire.requestFrom(deviceAddress, (uint8_t) 1);
-	data = Wire.read();
+	_Wire.requestFrom(deviceAddress, (uint8_t) 1);
+	data = _Wire.read();
 	return data;
-
 }
 
 void MPU9250::readRegisters( uint8_t deviceAddress,uint8_t firstRegister, uint8_t numRegisters, uint8_t * store){
-		Wire.beginTransmission(deviceAddress);   // Initialize the Tx buffer
-		Wire.write(firstRegister);            // Put slave register address in Tx buffer
-		Wire.endTransmission(false);  // Send the Tx buffer, but send a restart to keep connection alive
-										   //	Wire.endTransmission(false);       // Send the Tx buffer, but send a restart to keep connection alive
+		_Wire.beginTransmission(deviceAddress);   
+		_Wire.write(firstRegister);            
+		_Wire.endTransmission(false);  
 		uint8_t i = 0;
-		//        Wire.requestFrom(address, count);  // Read bytes from slave register address 
-		Wire.requestFrom(deviceAddress, numRegisters);  // Read bytes from slave register address 
-		while (Wire.available()) {
-			store[i++] = Wire.read();
+		_Wire.requestFrom(deviceAddress, numRegisters);  // Read bytes from slave register address 
+		while (_Wire.available()) {
+			store[i++] = _Wire.read();
 		}         // Put read results in the Rx buffer
 }
 
 void MPU9250::writeRegister( uint8_t deviceAddress, uint8_t reg, uint8_t whatToWrite)
 {
-	Wire.beginTransmission(deviceAddress);
-	Wire.write(reg);
-	Wire.write(whatToWrite);
-	Wire.endTransmission();
+	_Wire.beginTransmission(deviceAddress);
+	_Wire.write(reg);
+	_Wire.write(whatToWrite);
+	_Wire.endTransmission();
 }
 
 void MPU9250::readAcc( float * storage)
@@ -78,9 +70,9 @@ void MPU9250::readMag(float * storage)
 {
 	int16_t rawData[3];
 	readRawMag(&rawData[0]);
-	storage[0] = (float)rawData[0] * _magRes*_magSensAdjust[0]*_magError[0] - _magOff[0];
-	storage[1] = (float)rawData[1] * _magRes*_magSensAdjust[1]*_magError[1] - _magOff[1];
-	storage[2] = (float)rawData[2] * _magRes*_magSensAdjust[2]*_magError[2] - _magOff[2];
+	storage[0] = (float)rawData[0] * _magRes*_magSensAdjust[0]*_magErrorScale[0] - _magOffset[0];
+	storage[1] = (float)rawData[1] * _magRes*_magSensAdjust[1]*_magErrorScale[1] - _magOffset[1];
+	storage[2] = (float)rawData[2] * _magRes*_magSensAdjust[2]*_magErrorScale[2] - _magOffset[2];
 }
 
 void MPU9250::readRawMag(int16_t * storage)
@@ -116,16 +108,26 @@ bool MPU9250::initMPU()
 		Serial.println("MPU NOT FOUND");
 		return false;
 	}
+	//Serial.println("Found MPU");
 	writeRegister(_activeMPUAddress, PWR_MGMT_1, 0x81);//(reset all registers)/wake up device
 	delay(100);
-
+	//Serial.println("Reset");
 	writeRegister(_activeMPUAddress, PWR_MGMT_1, 0x01);//set a clock source, to be safe 
 	delay(10);
-
+	//Serial.println("ClockSource");
 	writeRegister(_activeMPUAddress, PWR_MGMT_2, 0x00);//enable all axis, to be safe
 	delay(10);
+	//Serial.println("Enabled");
 	writeRegister(_activeMPUAddress, INT_PIN_CFG, 2);//enable bypass to make magnometer accessable
 	delay(10);
+	//Serial.println("Enabling Bypass");
+	/*if (readRegister(_activeMPUAddress, INT_PIN_CFG) == 2) {
+		Serial.println("Bypass enabled");
+
+	}	else{
+		Serial.println("Bypass not enabled");
+
+	}*/
 		//Gyroscope Lowpass filter 
 	setLowPassMode(_lowPassModeAcc, _lowPassModeGyro);
 	setScaleAndResolution(_accScale, _gyroScale, _magBit);
@@ -142,7 +144,6 @@ void MPU9250::changeMPUAddress()
 	if (_activeMPUAddress == _ADDRESS_AD1) _activeMPUAddress = _ADDRESS_AD0;
 }
 
-
 void MPU9250::setLowPassMode(uint8_t accMode, uint8_t gyroMode)
 {	//accMode:depending on the number set in the header set the lowpass for the acc
 	//gyroMode: depending on the number set in the header set the lowpass for the gyro
@@ -152,30 +153,39 @@ void MPU9250::setLowPassMode(uint8_t accMode, uint8_t gyroMode)
 	switch (accMode){
 	case 0://no lowpass
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x08);
+		_accSampleDelayInMicro =(size_t) 750;
 		break;
 	case 1://bandwidth 480Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x00);
+		_accSampleDelayInMicro = (size_t)1940;
 		break;
 	case 2://bandwdith 184Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x01);
+		_accSampleDelayInMicro = (size_t)5800;
 		break;
 	case 3://bandwdith 92Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x02);
+		_accSampleDelayInMicro = (size_t)7800;
 		break;
 	case 4://bandwidth 41Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x03);
+		_accSampleDelayInMicro = (size_t)11800;
 		break;
 	case 5: //bandwidth 20Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x04);
+		_accSampleDelayInMicro = (size_t)19800;
 		break;
 	case 6: //bandwidth 10Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x05);
+		_accSampleDelayInMicro = (size_t)35700;
 		break;
 	case 7: //bandwidth 5Hz
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x06);
+		_accSampleDelayInMicro = (size_t)66960;
 		break;
 	case 8:
 		writeRegister(_activeMPUAddress, ACCEL_CONFIG2, 0x07);
+		_accSampleDelayInMicro = (size_t)1940;
 		break;
 	default:
 		Serial.print("Invalid AccMode");
@@ -257,7 +267,7 @@ void MPU9250::setLowPassMode(uint8_t accMode, uint8_t gyroMode)
 
 void MPU9250::setScaleAndResolution(uint8_t accScale, uint16_t gyroScale, uint8_t magBit)
 {
-	uint8_t temp,temp2;
+	volatile uint8_t temp,temp2;
 	switch (accScale){
 	case 2:
 		_accScale = 2;
@@ -322,48 +332,6 @@ uint8_t MPU9250::getAddress()
 	return test;
 }
 
-
-void MPU9250::i2cScanner() {
-	byte error, address;
-	int nDevices;
-
-	Serial.println("Scanning...");
-
-	nDevices = 0;
-	for (address = 1; address < 127; address++)
-	{
-		// The i2c_scanner uses the return value of
-		// the Write.endTransmisstion to see if
-		// a device did acknowledge to the address.
-		Wire.beginTransmission(address);
-		error = Wire.endTransmission();
-
-		if (error == 0)
-		{
-			Serial.print("I2C device found at address 0x");
-			if (address<16)
-				Serial.print("0");
-			Serial.print(address, HEX);
-			Serial.println("  !");
-
-			nDevices++;
-		}
-		else if (error == 4)
-		{
-			Serial.print("Unknown error at address 0x");
-			if (address<16)
-				Serial.print("0");
-			Serial.println(address, HEX);
-		}
-	}
-	if (nDevices == 0)
-		Serial.println("No I2C devices found\n");
-	else
-		Serial.println("done\n");
-
-	delay(5000);           // wait 5 seconds for next scan
-}
-
 void MPU9250::initMag()
 {
 	uint8_t rawData[3];  // x/y/z gyro calibration data stored here
@@ -377,38 +345,57 @@ void MPU9250::initMag()
 	_magSensAdjust[2] = (float)(rawData[2] - 128) / 256. + 1.;
 	writeRegister(_ADDRESS_MAG, MAG_CNTL1, 0x00); // Power down magnetometer  
 	delay(10);
-	// Configure the magnetometer for continuous read and highest resolution
-	// set Mscale bit 4 to 1 (0) to enable 16 (14) bit resolution in CNTL register,
-	// and enable continuous mode data acquisition Mmode (bits [3:0]), 0010 for 8 Hz and 0110 for 100 Hz sample rates
-	writeRegister(_ADDRESS_MAG, MAG_CNTL1, B10110); // Set magnetometer data resolution and sample ODR
+	//Continous Read  100Hz and 16bit /14bit
+	if (_magBit == 16) {
+		writeRegister(_ADDRESS_MAG, MAG_CNTL1, B10110); // Set magnetometer data resolution and sample ODR
+	}
+	else {
+		writeRegister(_ADDRESS_MAG, MAG_CNTL1, B00110); // Set magnetometer data resolution and sample ODR
+	}
+	
 	delay(10);
 }
 
 void MPU9250::calibrateGyro()
 {
+	//if the sensor isnt moving the gyro should measure zero angular velocity if not there is an offset
+	//hence we measure the gyro output and average it if its (there should be) non zero mean, thats our offset
 	float offset[3] = { 0,0,0 };
 
-	/*float temp[3];
+	float temp[3];
 	for (int i = 0; i < 500; ++i) {
 
-	mySensor.readGyro(&temp[0]);
+	readGyro(&temp[0]);
 	offset[0] += temp[0] / 500;
 	offset[1] += temp[1] / 500;
 	offset[2] += temp[2] / 500;
-	delay(10);
-	}*/
+	delayMicroseconds(_gyroSampleDelayInMicro);
+	}
+
+	_gyroOffset[0] = offset[0];
+	_gyroOffset[1] = offset[1];
+	_gyroOffset[2] = offset[2];
+	/*Serial.println("Gyroscope Offset");
+	Serial.print(offset[0]);
+	Serial.print(" ");
+	Serial.print(offset[1]);
+	Serial.print(" ");
+	Serial.println(offset[2]);
+*/
+	
 }
 
 void MPU9250::calibrateMag()
-{
+{	//this is a slightly modified version from the one from
 	//@krisWiner
 	uint16_t ii = 0, sample_count = 0;
 	int32_t mag_bias[3] = { 0, 0, 0 }, mag_scale[3] = { 0, 0, 0 };
 	int16_t mag_max[3] = { -32767, -32767, -32767 }, mag_min[3] = { 32767, 32767, 32767 }, mag_temp[3] = { 0, 0, 0 };
 
-	Serial.println("Mag Calibration: Wave device in a figure eight until done!");
-	delay(4000);
-
+	
+	delay(5000);
+	Serial.println("START");
+	delay(500);
 	
 	if (_magBit == 14) sample_count = 128;  // at 8 Hz ODR, new mag data is available every 125 ms
 	if (_magBit == 16) sample_count = 2000;  // at 100 Hz ODR, new mag data is available every 10 ms
@@ -445,7 +432,7 @@ void MPU9250::calibrateMag()
 	_magErrorScale[1] = avg_rad / ((float)mag_scale[1]);
 	_magErrorScale[2] = avg_rad / ((float)mag_scale[2]);
 
-	Serial.println("Mag Calibration done!");
+	//Serial.println("Mag Calibration done!");
 	/*for (int i = 0; i < 3; ++i) {
 		Serial.print(_magErrorScale[i], DEC);
 		Serial.print("   ");
@@ -455,4 +442,54 @@ void MPU9250::calibrateMag()
 		Serial.print("   ");
 	}
 	Serial.println(_magOffset[2], DEC);*/
+}
+
+void MPU9250::printMagCalibration()
+{
+	Serial.println("ErrorScale and Offset of the magnometer");
+	for (uint8_t i = 0; i < 3; i++) {
+		Serial.print(_magErrorScale[i]);
+		Serial.print(" ");
+	}
+	for (uint8_t i = 0; i < 3; i++) {
+		Serial.print(_magOffset[i]);
+		Serial.print(" ");
+	}
+	Serial.print("\n");
+
+}
+
+void MPU9250::setMagCalibration(float * errorScale, float * offset)
+{
+	for (uint8_t i = 0; i < 3; i++) {
+		_magErrorScale[i] = errorScale[i];
+		_magOffset[i] = offset[i];
+	}
+}
+
+void MPU9250::printGyroOffset()
+{
+	Serial.println("The offset fo the gyroscope");
+	for (uint8_t i = 0; i < 3; i++) {
+		Serial.print(_gyroOffset[i]);
+		Serial.print(" ");
+	}
+	Serial.print("\n");
+}
+
+void MPU9250::setGyroOffset(float * gyroOffset)
+{
+	for (uint8_t i = 0; i < 3; i++) {
+		_gyroOffset[i] = gyroOffset[i];
+	}
+}
+
+uint32_t MPU9250::getGyroSampleDelayInMicro()
+{
+	return _gyroSampleDelayInMicro;
+}
+
+uint32_t MPU9250::getAccSampleDelayInMicro()
+{
+	return _accSampleDelayInMicro;
 }

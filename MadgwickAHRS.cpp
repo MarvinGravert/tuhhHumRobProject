@@ -237,18 +237,35 @@ float MadgwickAHRS::invSqrt(float x) {
 	y = y * (1.5f - (halfx * y * y));
 	y = y * (1.5f - (halfx * y * y));
 	return y;
+
+	//x is already sum so now just sqrt and invert
+	//float temp= sqrtf(x);
+	//return 1.0f / temp;
 }
 
 //-------------------------------------------------------------------------------------------
 
 void MadgwickAHRS::computeAngles()
 {
+	//Code Magdwick
 	roll = atan2f(q0*q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2);
 	pitch = asinf(-2.0f * (q1*q3 - q0 * q2));
 	yaw = atan2f(q1*q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3);
 
+	//kriswiner
 	/*yaw = atan2f(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3);
 	pitch = -asinf(2.0f * (q1 * q3 - q0 * q2));
 	roll = atan2f(2.0f * (q0 * q1 + q2 * q3), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3);*/
+
+	//Paper agdwick
+	/*yaw = atan2f(2.0f*(q1*q2 - q0 * q3), 2.0f*(q0*q0 + q1 * q1) - 1);
+	pitch = -asinf(2.0f*(q1*q3 + q0 * q2));
+	roll = atan2f(2.0f * (q2*q3 - q0 * q1), 2.0f * (q0*q0 + q3 * q3) - 1);
+	*/
+	//Wikipedia https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+	roll = atan2f(2.0f * (q0*q1 + q2 * q3),1 - 2.0f * (q1*q1 + q2 * q2) );
+	pitch = asinf(2.0f*(q0*q2 - q1 * q3));
+	yaw = atan2f(2.0f*(q0*q3 + q1 * q2), 1 - 2.0f*(q2*q2 + q3 * q3));
+
 	anglesComputed = 1;
 }
